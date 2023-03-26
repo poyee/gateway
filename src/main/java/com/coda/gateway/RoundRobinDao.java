@@ -15,17 +15,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RoundRobinDao {
     private static Logger LOGGER = LoggerFactory.getLogger(RoundRobinDao.class);
 
-
-    @Value("${hosts}")
-    private String[] hosts;
-
-    @Value("${simple.path}")
-    private String path;
+    private final String[] hosts;
+    private final String path;
+    private final RestTemplate restTemplate;
+    private final AtomicInteger counter;
 
     @Autowired
-    private RestTemplate restTemplate;
-
-    private AtomicInteger counter = new AtomicInteger();
+    public RoundRobinDao(@Value("${hosts}") String[] hosts,
+                         @Value("${simple.path}") String path,
+                         @Autowired RestTemplate restTemplate) {
+        this.hosts = hosts;
+        this.path = path;
+        this.restTemplate = restTemplate;
+        this.counter = new AtomicInteger();
+    }
 
     public Map<String, Object> request(Map<String, Object> body) {
         String host = hosts[counter.get()];
