@@ -19,6 +19,7 @@ public class RoundRobinDao {
     private final String path;
     private final RestTemplate restTemplate;
     private final AtomicInteger counter;
+    private final int maxRetry = 3;
 
     @Autowired
     public RoundRobinDao(@Value("${hosts}") String[] hosts,
@@ -31,13 +32,27 @@ public class RoundRobinDao {
     }
 
     public Map<String, Object> request(Map<String, Object> body) {
-        String host = hosts[counter.get()];
-        counter.set((counter.get() + 1) % hosts.length);
+        int hostNumber = counter.get();
+        counter.set((hostNumber + 1) % hosts.length);
 
+        return request(body, hostNumber, 0);
+    }
+
+    public Map<String, Object> request(Map<String, Object> body, int hostNumber, int retry) {
+        String host = hosts[hostNumber];
         String url = "http://" + host + path;
 
-        LOGGER.info("request " + url);
+        LOGGER.info("request {}", url);
 
-        return restTemplate.postForObject(url, body, Map.class);
+        try {
+            return restTemplate.postForObject(url, body, Map.class);
+        } catch (Exception e) {
+            if (retry < maxRetry) {
+                LOGGER.info("{} return error, retrying", url);
+                return request(body, (hostNumber + 1) % hosts.length, retry + 1);
+            }
+
+            throw e;
+        }
     }
 }
