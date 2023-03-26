@@ -32,14 +32,11 @@ public class RoundRobinDao {
     }
 
     public Map<String, Object> request(Map<String, Object> body) {
-        int hostNumber = counter.get();
-        counter.set((hostNumber + 1) % hosts.length);
-
-        return request(body, hostNumber, 0);
+        return request(body, 0);
     }
 
-    public Map<String, Object> request(Map<String, Object> body, int hostNumber, int retry) {
-        String host = hosts[hostNumber];
+    public Map<String, Object> request(Map<String, Object> body, int retry) {
+        String host = getHost();
         String url = "http://" + host + path;
 
         LOGGER.info("request {}", url);
@@ -49,10 +46,21 @@ public class RoundRobinDao {
         } catch (Exception e) {
             if (retry < maxRetry) {
                 LOGGER.info("{} return error, retrying", url);
-                return request(body, (hostNumber + 1) % hosts.length, retry + 1);
+                return request(body, retry + 1);
             }
 
             throw e;
         }
+    }
+
+    private String getHost() {
+        int hostNumber = counter.getAndIncrement();
+
+        hostNumber %= hosts.length;
+        if (hostNumber < 0) {
+            hostNumber += hosts.length;
+        }
+
+        return hosts[hostNumber];
     }
 }
