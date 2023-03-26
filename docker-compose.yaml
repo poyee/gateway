@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  gateway:
+    build: .
+    ports:
+      - 8080:8080
+    depends_on:
+      - simple1
+      - simple2
+      - simple3
+  simple1:
+    build: .
+  simple2:
+    build: .
+  simple3:
+    build: .
